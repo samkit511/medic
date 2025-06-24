@@ -1,4 +1,4 @@
-# frontend/app.py - Streamlit frontend for clinical diagnostics chatbot
+
 import streamlit as st
 import requests
 import json
@@ -49,7 +49,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "session_id" not in st.session_state:
@@ -166,11 +165,10 @@ def display_message(message: Dict[str, Any], is_user: bool = False):
                 for condition in message["possible_conditions"][:5]:  # Limit to 5
                     st.markdown(f"• {condition}")
             
-            # Display disclaimer
+            
             if "disclaimer" in message:
                 st.caption(f"⚠️ {message['disclaimer']}")
 
-# Main App Layout
 def main():
     # Header
     st.markdown("""
