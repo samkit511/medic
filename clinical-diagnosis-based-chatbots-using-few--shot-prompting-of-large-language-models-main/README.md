@@ -2,7 +2,7 @@
 
 An AI-powered medical consultation chatbot using RAG (Retrieval Augmented Generation), few-Shot Prompting, and Free APIs (Groq + HuggingFace). Built with FastAPI backend and Streamlit frontend.
 
-1) ** Features **
+1)** Features **
 
 Medical Symptom Analysis : using AI-powered RAG 
 Emergency Detection :with immediate alerts for critical symptoms  
