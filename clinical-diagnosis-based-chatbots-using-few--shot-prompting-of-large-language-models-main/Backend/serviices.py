@@ -115,7 +115,7 @@ class HuggingFaceService:
     async def generate_medical_response(self, prompt: str, context: Dict = None) -> Dict[str, Any]:
         """Generate medical response using HuggingFace with few-shot prompting"""
         try:
-            # Create few-shot enhanced prompt
+         
             medical_prompt = self._create_few_shot_prompt(prompt, context)
             
             response = self.client.text_generation(
