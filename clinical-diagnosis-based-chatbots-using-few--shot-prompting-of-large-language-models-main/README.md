@@ -49,7 +49,7 @@ clinical_diagnostics_chatbot/
 **cd backend**
 pip install fastapi uvicorn python-multipart python-dotenv groq huggingface-hub PyPDF2 requests
 
-5. **cd frontend **
+5.  **cd frontend **
 pip install streamlit requests python-multipart python-dotenv
  6.API Keys (Get free keys from respective platforms)
 HUGGINGFACE_API_TOKEN=your_huggingface_token_here
