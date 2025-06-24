@@ -15,7 +15,9 @@ Free to Use:no premium API requirements
 2) 📁 Project Structure( more files to be added later)
 clinical_diagnostics_chatbot/
 ├── 📁 backend/
+
 │ ├── main.py # FastAPI application(High-performance API framework,Fast AI inference (free tier))
+
 │ ├── services.py # Core medical AI services
 │ ├── config.py # Configuration management
 │ └── requirements.txt # Backend dependencies
