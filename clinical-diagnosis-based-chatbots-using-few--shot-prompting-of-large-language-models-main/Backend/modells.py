@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
-
+# changes in severity levls
 class UrgencyLevel(str, Enum):
     """Medical urgency levels"""
     EMERGENCY = "emergency"
