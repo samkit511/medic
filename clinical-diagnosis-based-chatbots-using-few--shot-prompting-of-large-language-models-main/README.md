@@ -43,13 +43,15 @@ clinical_diagnostics_chatbot/
 
 └── README.md # This file
 
-3. **Set Up Virtual Environment**
+3) **Set Up Virtual Environment**
    go to the terminal of vs code ->python -m venv venv->venv\Scripts\activate
-4.Install Dependencies
-**cd backend**
+   
+4)Install Dependencies
+
+5)**cd backend**
 pip install fastapi uvicorn python-multipart python-dotenv groq huggingface-hub PyPDF2 requests
 
-**cd frontend**
+6)**cd frontend**
 pip install streamlit requests python-multipart python-dotenv
  6.API Keys (Get free keys from respective platforms)
 HUGGINGFACE_API_TOKEN=your_huggingface_token_here
