@@ -5,11 +5,19 @@ An AI-powered medical consultation chatbot using RAG (Retrieval Augmented Genera
 1)**Features**
 
 Medical Symptom Analysis : using AI-powered RAG 
+
+
 Emergency Detection :with immediate alerts for critical symptoms  
+
+
 Document Upload & Processing :(PDF, TXT, DOCX)
+
 Conversation Memory : with session management
+
 Multi-API Support : (Groq + HuggingFace with fallbacks)
+
 Real-time Chat Interface: with medical safety protocols
+
 Free to Use:no premium API requirements
 
 2) **📁 Project Structure**( more files to be added later)
