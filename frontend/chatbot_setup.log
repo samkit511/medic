@@ -1,0 +1,6 @@
+[2025-06-30 16:34:25,175] INFO: Backend health check: Status 200
+[2025-06-30 16:34:50,552] INFO: Backend health check: Status 200
+[2025-06-30 16:34:50,578] INFO: Processing user input: i have severe chest pain...
+[2025-06-30 16:34:50,586] INFO: Sending chat request: i have severe chest pain...
+[2025-06-30 16:34:52,620] INFO: Chat API call successful
+[2025-06-30 16:34:52,628] INFO: Chat response stored successfully

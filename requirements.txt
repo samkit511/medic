@@ -1,0 +1,33 @@
+streamlit==1.40.1
+bcrypt==4.2.0
+python-dotenv==1.0.1
+Pillow==10.4.0
+pandas==2.2.3
+PyPDF2==3.0.1
+fastapi==0.115.0
+uvicorn==0.32.0
+pydantic-settings==2.5.2
+groq==0.11.0
+huggingface_hub==0.25.1
+python-docx==1.1.2
+requests==2.32.3
+sentence-transformers==2.6.1
+transformers==4.43.2
+cachetools==5.3.3
+googletrans==4.0.0-rc1
+deep_translator
+# Instructions to Run
+# 1. Create a new directory and place all files in the structure shown above.
+
+# 2. Install dependencies:
+# pip install -r requirements.txt
+
+# 3. Create the uploads directory:
+# mkdir uploads
+
+# 4. Ensure you have Python 3.8+ installed.
+
+# 5. Run the app:
+# streamlit run main.py
+
+# 6. Access the app at `http://localhost:8501`.
