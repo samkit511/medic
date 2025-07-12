@@ -1,0 +1,14 @@
+[
+    {"input": "Patient: 65-year-old male with chest pain, shortness of breath, history of hypertension",
+    "output": "Analysis: Possible acute coronary syndrome or pulmonary embolism. Recommendations: Immediate ER visit, ECG, cardiac enzymes, chest CT. Urgency: Emergency"},
+    {"input": "Patient: 30-year-old female with headache, nausea, sensitivity to light",
+    "output": "Analysis: Likely migraine or tension headache. Recommendations: Rest in dark room, hydrate, consider over-the-counter pain relief. Urgency: Moderate"},
+    {"input": "Patient: 45-year-old male with persistent cough, fever, fatigue",
+    "output": "Analysis: Possible respiratory infection (viral or bacterial). Recommendations: Rest, fluids, monitor temperature, see doctor if symptoms worsen. Urgency: Moderate"},
+    {"input": "Patient: 12-year-old child with abdominal pain, vomiting, no fever",
+    "output": "Analysis: Possible gastroenteritis or appendicitis. Recommendations: Monitor symptoms, seek medical evaluation if pain worsens. Urgency: High"},
+    {"input": "Patient: 70-year-old female with fatigue, weight loss, joint pain",
+    "output": "Analysis: Possible arthritis, anemia, or malignancy. Recommendations: Blood tests, consult primary care physician. Urgency: Moderate"},
+    {"input": "Patient: 25-year-old male with rash, fever, joint pain",
+    "output": "Analysis: Possible viral exanthem or autoimmune condition. Recommendations: Consult dermatologist, blood tests for autoimmune markers. Urgency: Moderate"}
+]
