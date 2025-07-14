@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Chatbot.css';
+import './Chatbot.css'; // Ensure CSS is imported
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -11,6 +11,7 @@ const Chatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const chatContainerRef = useRef(null);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   const BACKEND_URL = 'http://localhost:8000';
@@ -55,12 +56,12 @@ const Chatbot = () => {
         content: `
           ${data.emergency ? '<div class="emergency-alert">EMERGENCY: SEEK IMMEDIATE MEDICAL ATTENTION!</div>' : ''}
           <div class="urgency-${data.urgency_level || 'low'}">
-            ${data.response}<br>
+            <strong>Response:</strong><br>${data.response}<br><br>
             <strong>Confidence:</strong> ${(data.confidence || 0).toFixed(2)}<br>
             <strong>Explanation:</strong> ${data.explanation || 'N/A'}<br>
             <strong>Urgency:</strong> ${data.urgency_level || 'N/A'}<br>
-            ${data.disclaimer ? `<strong>Disclaimer:</strong> ${data.disclaimer}` : ''}
-            ${data.possible_conditions?.length ? `<br><strong>Possible Conditions:</strong> ${data.possible_conditions.join(', ')}` : ''}
+            ${data.disclaimer ? `<strong>Disclaimer:</strong> ${data.disclaimer}<br>` : ''}
+            ${data.possible_conditions?.length ? `<strong>Possible Conditions:</strong> ${data.possible_conditions.join(', ')}` : ''}
           </div>
         `,
         timestamp: new Date().toLocaleTimeString(),
@@ -98,8 +99,7 @@ const Chatbot = () => {
         content: `
           ${data.analysis?.emergency ? '<div class="emergency-alert">EMERGENCY: SEEK IMMEDIATE MEDICAL ATTENTION!</div>' : ''}
           <div class="urgency-${data.analysis?.urgency_level || 'low'}">
-            Document processed: ${data.filename}<br>
-            ${data.analysis?.response || 'No analysis available.'}<br>
+            <strong>Response:</strong><br>Document processed: ${data.filename}<br>${data.analysis?.response || 'No analysis available.'}<br><br>
             <strong>Confidence:</strong> ${(data.analysis?.confidence || 0).toFixed(2)}<br>
             <strong>Explanation:</strong> ${data.analysis?.explanation || 'N/A'}<br>
             <strong>Urgency:</strong> ${data.analysis?.urgency_level || 'N/A'}<br>
@@ -118,6 +118,7 @@ const Chatbot = () => {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = ''; // Reset file input
     }
   };
 
@@ -139,52 +140,96 @@ const Chatbot = () => {
     }
   };
 
+  // Trigger file input when plus button is clicked
+  const handlePlusClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
   return (
-    <div className="chatbot-container container my-5">
-      <div className="main-header">
-        <h1>Clinical Diagnostics Chatbot</h1>
-        <p>Your AI-powered medical assistant</p>
-      </div>
-
-      {isLoggedIn && (
-        <div className="sidebar">
-          <h2>Welcome, {username}</h2>
-          <h3>Upload Medical Document</h3>
-          <input
-            type="file"
-            accept=".pdf,.txt,.docx"
-            onChange={handleFileUpload}
-            disabled={isLoading}
-          />
-          <button className="btn btn-danger mt-3" onClick={handleLogout}>
-            Logout
-          </button>
+    <div className="bg-gradient-to-r from-blue-50 to-white py-12">
+      <div className="w-full px-4 md:px-8 lg:px-12">
+        <div className="flex flex-col md:flex-row gap-6">
+          {isLoggedIn && (
+            <div className="w-full md:w-1/4 bg-blue-100 p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold text-blue-800 mb-4">Welcome, {username}</h2>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">Upload Medical Document</h3>
+              <input
+                type="file"
+                accept=".pdf,.txt,.docx"
+                onChange={handleFileUpload}
+                disabled={isLoading}
+                className="w-full p-2 mb-4 border border-gray-300 rounded-lg hidden"
+                ref={fileInputRef}
+              />
+              <button
+                className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition"
+                onClick={handleLogout}
+                disabled={isLoading}
+              >
+                Logout
+              </button>
+            </div>
+          )}
+          <div className="w-full">
+            <div className="bg-white p-8 rounded-lg shadow-md">
+              <div className="main-header">
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">CURA</h1>
+                <p className="text-gray-600">Your AI-powered medical assistant</p>
+              </div>
+              <div className="chat-area flex flex-col" ref={chatContainerRef} style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`chat-message-wrapper ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`chat-message ${msg.role === 'user' ? 'user' : 'bot'} p-4 mb-4 rounded-lg`}
+                      dangerouslySetInnerHTML={{ __html: `${msg.role === 'user' ? 'You' : 'Bot'}<br>${msg.content}<br><small className="text-gray-500 block mt-2">${msg.timestamp}</small>` }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="chat-input mt-4 flex gap-4 items-center">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Enter your medical query..."
+                  disabled={isLoading}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-vertical"
+                />
+                <button
+                  className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition w-10 flex items-center justify-center"
+                  onClick={handlePlusClick}
+                  disabled={isLoading}
+                  title="Upload File"
+                >
+                  +
+                </button>
+                <button
+                  className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition w-24"
+                  onClick={submitQuery}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Sending...' : 'Send'}
+                </button>
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.docx"
+                  onChange={handleFileUpload}
+                  disabled={isLoading}
+                  className="hidden"
+                  ref={fileInputRef}
+                />
+              </div>
+            </div>
+            <div className="footer mt-6 bg-blue-600 text-white p-4 rounded-lg text-center">
+              <p><strong className="text-yellow-300 text-2xl">⚠️ Important Medical Disclaimer:</strong></p>
+              <strong className="text-l"><p>This chatbot provides informational content only and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of qualified healthcare providers with any questions regarding medical conditions.</p>
+              <p><strong>In case of emergency, call your local emergency services immediately.</strong></p></strong>
+            </div>
+          </div>
         </div>
-      )}
-
-      <div className="chat-area" ref={chatContainerRef}>
-        {messages.map((msg, index) => (
-          <div key={index} className={`chat-message ${msg.role === 'user' ? 'user' : 'bot'}`} dangerouslySetInnerHTML={{ __html: `${msg.role === 'user' ? 'You' : 'Bot'}: ${msg.content}<br><small>${msg.timestamp}</small>` }} />
-        ))}
-      </div>
-
-      <div className="chat-input">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Enter your medical query..."
-          disabled={isLoading}
-        />
-        <button className="btn btn-primary" onClick={submitQuery} disabled={isLoading}>
-          {isLoading ? 'Sending...' : 'Send'}
-        </button>
-      </div>
-
-      <div className="footer">
-        <p><strong>⚠️ Important Medical Disclaimer:</strong></p>
-        <p>This chatbot provides informational content only and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of qualified healthcare providers with any questions regarding medical conditions.</p>
-        <p><strong>In case of emergency, call your local emergency services immediately.</strong></p>
       </div>
     </div>
   );
