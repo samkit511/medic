@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Chatbot.css'; // Ensure CSS is imported
+import './chatbot.css'; // Make sure your CSS file is named correctly
+
+const TOTAL_CLINICAL_QUESTIONS = 14; // Adjust this to match your backend's question count
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -41,7 +43,7 @@ const Chatbot = () => {
       content: input,
       timestamp: new Date().toLocaleTimeString(),
     };
-    setMessages([...messages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -51,29 +53,54 @@ const Chatbot = () => {
         session_id: sessionId,
       });
       const data = response.data;
-      const botMessage = {
-        role: 'bot',
-        content: `
-          ${data.emergency ? '<div class="emergency-alert">EMERGENCY: SEEK IMMEDIATE MEDICAL ATTENTION!</div>' : ''}
-          <div class="urgency-${data.urgency_level || 'low'}">
-            <strong>Response:</strong><br>${data.response}<br><br>
-            <strong>Confidence:</strong> ${(data.confidence || 0).toFixed(2)}<br>
-            <strong>Explanation:</strong> ${data.explanation || 'N/A'}<br>
-            <strong>Urgency:</strong> ${data.urgency_level || 'N/A'}<br>
-            ${data.disclaimer ? `<strong>Disclaimer:</strong> ${data.disclaimer}<br>` : ''}
-            ${data.possible_conditions?.length ? `<strong>Possible Conditions:</strong> ${data.possible_conditions.join(', ')}` : ''}
-          </div>
-        `,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, botMessage]);
+
+      // Handle stepwise clinical interview
+      if (data.next_question) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            content: data.next_question,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (data.diagnosis) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            content: `<strong>Diagnosis Summary:</strong><br>${data.diagnosis}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else if (data.response) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            content: data.response,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'bot',
+            content: "I'm here to help. Please provide more information.",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      }
     } catch (error) {
-      const errorMessage = {
-        role: 'bot',
-        content: `Error: Failed to process query - ${error.message}`,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          content: `Error: Failed to process query - ${error.message}`,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -94,31 +121,26 @@ const Chatbot = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const data = response.data;
-      const botMessage = {
-        role: 'bot',
-        content: `
-          ${data.analysis?.emergency ? '<div class="emergency-alert">EMERGENCY: SEEK IMMEDIATE MEDICAL ATTENTION!</div>' : ''}
-          <div class="urgency-${data.analysis?.urgency_level || 'low'}">
-            <strong>Response:</strong><br>Document processed: ${data.filename}<br>${data.analysis?.response || 'No analysis available.'}<br><br>
-            <strong>Confidence:</strong> ${(data.analysis?.confidence || 0).toFixed(2)}<br>
-            <strong>Explanation:</strong> ${data.analysis?.explanation || 'N/A'}<br>
-            <strong>Urgency:</strong> ${data.analysis?.urgency_level || 'N/A'}<br>
-            ${data.analysis?.possible_conditions?.length ? `<strong>Possible Conditions:</strong> ${data.analysis.possible_conditions.join(', ')}` : ''}
-          </div>
-        `,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          content: `<strong>Document processed:</strong> ${data.file_name || file.name}<br>${data.document_analysis?.summary || 'No summary available.'}`,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
     } catch (error) {
-      const errorMessage = {
-        role: 'bot',
-        content: `Error: Failed to process document - ${error.message}`,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          content: `Error: Failed to process document - ${error.message}`,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = ''; // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -144,6 +166,15 @@ const Chatbot = () => {
   const handlePlusClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
+
+  // Progress calculation (user messages = answers)
+  const answeredQuestions = messages.filter(msg => msg.role === 'user').length;
+
+  // Dynamic placeholder (show last bot question if available)
+  const lastBotMessage = messages.slice().reverse().find(msg => msg.role === 'bot');
+  const inputPlaceholder = lastBotMessage
+    ? lastBotMessage.content.replace(/<[^>]+>/g, '').split('<br>')[0]
+    : 'Describe your symptoms or answer the question...';
 
   return (
     <div className="bg-gradient-to-r from-blue-50 to-white py-12">
@@ -176,6 +207,17 @@ const Chatbot = () => {
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">CURA</h1>
                 <p className="text-gray-600">Your AI-powered medical assistant</p>
               </div>
+              {/* Progress Bar */}
+              <div className="progress-bar mb-4">
+                <span>Progress: {answeredQuestions}/{TOTAL_CLINICAL_QUESTIONS} questions answered</span>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full"
+                    style={{ width: `${(answeredQuestions / TOTAL_CLINICAL_QUESTIONS) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+              {/* Chat Area */}
               <div className="chat-area flex flex-col" ref={chatContainerRef} style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {messages.map((msg, index) => (
                   <div
@@ -184,17 +226,20 @@ const Chatbot = () => {
                   >
                     <div
                       className={`chat-message ${msg.role === 'user' ? 'user' : 'bot'} p-4 mb-4 rounded-lg`}
-                      dangerouslySetInnerHTML={{ __html: `${msg.role === 'user' ? 'You' : 'Bot'}<br>${msg.content}<br><small className="text-gray-500 block mt-2">${msg.timestamp}</small>` }}
+                      dangerouslySetInnerHTML={{
+                        __html: `${msg.role === 'user' ? 'You' : 'Bot'}<br>${msg.content}<br><small className="text-gray-500 block mt-2">${msg.timestamp}</small>`
+                      }}
                     />
                   </div>
                 ))}
               </div>
+              {/* Input Area */}
               <div className="chat-input mt-4 flex gap-4 items-center">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Enter your medical query..."
+                  placeholder={inputPlaceholder}
                   disabled={isLoading}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 resize-vertical"
                 />
