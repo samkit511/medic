@@ -895,6 +895,8 @@ class ContextService:
         return summary
 class MedicalChatbot:
     def __init__(self):
+       
+
         self.rag_service = MedicalRAGService()
         self.hf_service = HuggingFaceService()
         self.groq_service = GroqService()
@@ -987,4 +989,7 @@ class MedicalChatbot:
                 "session_id": session_id,
                 "confidence": 0.0,
                 "explanation": f"Failed to process due to: {str(e)}"
+                                  
             }
+        
+medical_chatbot = MedicalChatbot()
