@@ -96,12 +96,40 @@ class ConversationTurn(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now, description="Turn timestamp")
 
 class SessionContext(BaseModel):
-    """Session context for conversation tracking"""
+    """Session context for conversation tracking and clinical data collection"""
     session_id: str = Field(..., description="Unique session identifier")
     conversation_history: List[ConversationTurn] = Field(default_factory=list, description="Conversation history")
     uploaded_documents: List[str] = Field(default_factory=list, description="List of uploaded document IDs")
     medical_summary: str = Field("", description="Summary of medical discussion")
     last_activity: datetime = Field(default_factory=datetime.now, description="Last activity timestamp")
+
+    name: Optional[str] = Field(None, description="Patient's name")
+    age: Optional[int] = Field(None, description="Patient's age")
+    gender: Optional[str] = Field(None, description="Patient's gender")
+    chief_complaint: Optional[str] = Field(None, description="Chief complaint")
+    symptom_description: Optional[str] = Field(None, description="Description of main symptom")
+    onset: Optional[str] = Field(None, description="When symptoms started")
+    duration: Optional[str] = Field(None, description="Duration of symptoms")
+    location: Optional[str] = Field(None, description="Location of problem")
+    character: Optional[str] = Field(None, description="Nature of symptom (sharp, dull, throbbing, etc.)")
+    severity: Optional[str] = Field(None, description="Symptom severity (1-10)")
+    progression: Optional[str] = Field(None, description="Symptom progression (better, worse, same)")
+    associated_symptoms: Optional[str] = Field(None, description="Other symptoms present")
+    aggravating_factors: Optional[str] = Field(None, description="Aggravating or relieving factors")
+    diet: Optional[str] = Field(None, description="Recent diet or dietary changes")
+    recent_meals: Optional[str] = Field(None, description="Meals before symptom onset")
+    hydration: Optional[str] = Field(None, description="Water intake")
+    sleep_quality: Optional[str] = Field(None, description="Sleep quality")
+    physical_activity: Optional[str] = Field(None, description="Physical activity")
+    substance_use: Optional[str] = Field(None, description="Substance use (smoking, alcohol, drugs)")
+    medical_history: Optional[str] = Field(None, description="Past medical history")
+    medications: Optional[str] = Field(None, description="Current medications or supplements")
+    allergies: Optional[str] = Field(None, description="Known allergies")
+    family_history: Optional[str] = Field(None, description="Family history of disease")
+    occupation: Optional[str] = Field(None, description="Occupation")
+    recent_travel: Optional[str] = Field(None, description="Recent travel")
+    exposures: Optional[str] = Field(None, description="Exposure to sick contacts or environmental risks")
+
 
 class ErrorDetail(BaseModel):
     """Detailed error information"""
