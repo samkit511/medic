@@ -18,6 +18,30 @@ import PyPDF2
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from config import settings, is_emergency_symptom
 
+CLINICAL_QUESTIONS = [
+    {"key": "name", "question": "May I know your name?"},
+    {"key": "age", "question": "How old are you?"},
+    {"key": "gender", "question": "What is your gender?"},
+    {"key": "chief_complaint", "question": "What brings you in today?"},
+    {"key": "symptom_description", "question": "Can you describe your main symptom or concern?"},
+    {"key": "onset", "question": "When did your symptoms start?"},
+    {"key": "duration", "question": "How long have you been experiencing these symptoms?"},
+    {"key": "location", "question": "Where exactly do you feel the problem?"},
+    {"key": "character", "question": "Can you describe the symptom? (e.g., sharp, dull, throbbing)"},
+    {"key": "severity", "question": "On a scale of 1 to 10, how severe is it?"},
+    {"key": "progression", "question": "Are your symptoms getting better, worse, or staying the same?"},
+    {"key": "associated", "question": "Are you experiencing any other symptoms? (e.g., fever, nausea, cough, rash)"},
+    {"key": "aggravating", "question": "Does anything make your symptoms better or worse?"},
+    
+]
+
+def get_next_question(session_data):
+    for item in CLINICAL_QUESTIONS:
+        if item["key"] not in session_data or not session_data[item["key"]]:
+            return item["question"], item["key"]
+    return None, None 
+
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -167,9 +191,13 @@ class HuggingFaceService:
         self.vision_model = settings.hf_medical_model  # Vision model for multimodal
         self.embedding_model = self._load_embedding_model()
         self.sentiment_analyzer = self._load_sentiment_analyzer()
-        self.translator = GoogleTranslator()
+        self.translator = GoogleTranslator(source='auto', target='en')
+
         self.few_shot_examples = self._load_medical_examples()
         logger.info(f"HuggingFaceService initialized, client available: {bool(self.client)}")
+    def _translate_query(self, prompt):
+        return self.translator.translate(prompt)
+
 
     def _load_embedding_model(self):
         model_key = "sentence_transformer"
@@ -344,15 +372,17 @@ Always recommend consulting healthcare professionals."""
                 "explanation": f"Reasoning based on fallback due to error: {str(e)}"
             }
 
-    def _translate_query(self, query: str, target_lang: str = "en") -> str:
+   
+    def _translate_query(self, query: str) -> str:
         try:
-            if any(ord(char) > 127 for char in query):
-                translated = self.translator.translate(query, dest=target_lang)
-                logger.info(f"Translated query to English: {translated[:50]}...")
-                return translated
+        # Always attempt translation (deep_translator will skip if already Englissssh)
+            translated = self.translator.translate(query)
+            logger.info(f"Translated query to English: {translated[:50]}...")
+            return translated
         except Exception as e:
             logger.error(f"Translation error: {e}")
         return query
+
 
     async def _refine_diagnosis(self, user_query: str, response: str, session_id: str, context: Dict = None) -> str:
         urgency = "emergency" if context and context.get("emergency_detected") else "normal"
@@ -389,9 +419,12 @@ class GroqService:
         self.client = Groq(api_key=settings.groq_api_key) if settings.groq_api_key else None
         self.embedding_model = self._load_embedding_model()
         self.sentiment_analyzer = self._load_sentiment_analyzer()
-        self.translator = GoogleTranslator()
+       
+        self.translator = GoogleTranslator(source='auto', target='en')
         self.few_shot_examples = self._load_medical_examples()
         logger.info(f"GroqService initialized, client available: {bool(self.client)}")
+    def _translate_query(self, prompt):
+        return self.translator.translate(prompt)
 
     def _load_embedding_model(self):
         model_key = "sentence_transformer"
@@ -548,15 +581,24 @@ Always recommend consulting healthcare providers."""
                 "explanation": f"Failed to reason due to: {str(e)}"
             }
 
-    def _translate_query(self, query: str, target_lang: str = "en") -> str:
+    #def _translate_query(self, query: str, target_lang: str = "en") -> str:
+        #try:
+           # if any(ord(char) > 127 for char in query):
+               # translated = self.translator.translate(query, dest=target_lang)
+                #logger.info(f"Translated query: {query[:50]}... -> {translated[:50]}...")
+               # return translated
+        #except Exception as e:
+            #logger.error(f"Translation error: {e}")
+        #return query
+    def _translate_query(self, query: str) -> str:
         try:
-            if any(ord(char) > 127 for char in query):
-                translated = self.translator.translate(query, dest=target_lang)
-                logger.info(f"Translated query: {query[:50]}... -> {translated[:50]}...")
-                return translated
+            translated = self.translator.translate(query)
+            logger.info(f"Translated query: {query[:50]}... -> {translated[:50]}...")
+            return translated
         except Exception as e:
             logger.error(f"Translation error: {e}")
         return query
+
 
     async def _refine_diagnosis(self, user_query: str, response: str, session_id: str, context: Dict = None) -> str:
         urgency = "emergency" if context and context.get("emergency_detected") else "normal"
@@ -851,31 +893,61 @@ class ContextService:
             summary += f"User: {msg['user_message'][:50]}...\nBot: {msg['bot_response'][:50]}...\n"
         logger.debug(f"Generated summary for session: {session_id}")
         return summary
-
 class MedicalChatbot:
     def __init__(self):
         self.rag_service = MedicalRAGService()
         self.hf_service = HuggingFaceService()
         self.groq_service = GroqService()
-        self.doc_service = DocumentProcessingService(self.rag_service, self.hf_service if settings.huggingface_api_token else self.groq_service)
+        self.doc_service = DocumentProcessingService(
+            self.rag_service,
+            self.hf_service if settings.huggingface_api_token else self.groq_service
+        )
         self.context_service = ContextService()
         logger.info("MedicalChatbot initialized")
 
-    async def process_medical_query(self, message: str, session_id: str = "default") -> Dict[str, Any]:
+    def get_next_clinical_question(self, session_id):
+        session = self.context_service.get_context(session_id)
+        session_data = session.get("collected_data", {}) if session else {}
+        question, key = get_next_question(session_data)
+        return question, key
+
+    async def process_user_input(self, user_input, session_id):
+        session = self.context_service.get_context(session_id)
+        if not session:
+            session = self.context_service.create_session(session_id)
+        collected_data = session.setdefault("collected_data", {})
+
+        # Save answer to last unanswered question
+        question, key = get_next_question(collected_data)
+        if key:
+            collected_data[key] = user_input
+            self.context_service.update_context(session_id, user_input, "", medical_info=None)
+
+        # Get next question to ask
+        next_question, next_key = get_next_question(collected_data)
+        if next_question:
+            return {"next_question": next_question, "session_id": session_id}
+        else:
+            # All questions answered, proceed to diagnosis
+            summary = ", ".join([f"{k}: {v}" for k, v in collected_data.items()])
+            diagnosis = await self.process_medical_query(summary, session_id)
+            return {"diagnosis": diagnosis, "session_id": session_id}
+
+    async def process_medical_query(self, message: str, session_id: str = "default") -> dict:
         try:
             logger.info(f"Processing medical query: {message[:50]}... for session: {session_id}")
-            
+
             rag_context = self.rag_service.get_context_for_query(message)
             ai_service = self.hf_service if settings.huggingface_api_token else self.groq_service
-            
+
             result = await ai_service.generate_medical_response(message, rag_context)
-            
+
             # Fallback to GroqService if HuggingFace fails due to authentication
             if not result["success"] and "authentication error" in result["error"].lower():
                 logger.info("Falling back to GroqService due to HuggingFace authentication failure")
                 ai_service = self.groq_service
                 result = await ai_service.generate_medical_response(message, rag_context)
-            
+
             if result["success"]:
                 self.context_service.update_context(session_id, message, result["response"], rag_context)
                 urgency_level = "emergency" if rag_context["emergency_detected"] else "normal"
@@ -916,18 +988,3 @@ class MedicalChatbot:
                 "confidence": 0.0,
                 "explanation": f"Failed to process due to: {str(e)}"
             }
-
-medical_chatbot = MedicalChatbot()
-
-if __name__ == "__main__":
-    async def test_chatbot():
-        chatbot = MedicalChatbot()
-        query = "I have a headache and fever"
-        result = await chatbot.process_medical_query(query, session_id="test123")
-        print(f"Query: {query}")
-        print(f"Response: {result['response']}")
-        print(f"Urgency: {result['urgency_level']}")
-        print(f"Possible Conditions: {result['possible_conditions']}")
-        print(f"Confidence: {result['confidence']}")
-
-    asyncio.run(test_chatbot())
