@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './chatbot.css'; // Make sure your CSS file is named correctly
 
-const TOTAL_CLINICAL_QUESTIONS = 14; // Adjust this to match your backend's question count
+const TOTAL_CLINICAL_QUESTIONS = 10; 
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -144,7 +144,7 @@ const Chatbot = () => {
     }
   };
 
-  // Handle logout
+  // Handle logoutrfnerjfefnekjf
   const handleLogout = () => {
     localStorage.removeItem('username');
     setIsLoggedIn(false);
@@ -154,7 +154,7 @@ const Chatbot = () => {
     navigate('/login');
   };
 
-  // Handle key press for Enter to submit
+  
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -162,15 +162,15 @@ const Chatbot = () => {
     }
   };
 
-  // Trigger file input when plus button is clicked
+  
   const handlePlusClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
 
-  // Progress calculation (user messages = answers)
+  
   const answeredQuestions = messages.filter(msg => msg.role === 'user').length;
 
-  // Dynamic placeholder (show last bot question if available)
+
   const lastBotMessage = messages.slice().reverse().find(msg => msg.role === 'bot');
   const inputPlaceholder = lastBotMessage
     ? lastBotMessage.content.replace(/<[^>]+>/g, '').split('<br>')[0]
