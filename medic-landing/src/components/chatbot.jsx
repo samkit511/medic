@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './chatbot.css'; // Make sure your CSS file is named correctly
+import './chatbot.css'; // Make sure your CSS file is named correctly//
 
 const TOTAL_CLINICAL_QUESTIONS = 10; 
 
