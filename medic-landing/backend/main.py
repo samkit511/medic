@@ -12,6 +12,7 @@ from services import medical_chatbot
 from config import settings, is_emergency_symptom
 from database import Database
 from services import medical_chatbot
+
 import logging
 from PIL import Image
 import io
