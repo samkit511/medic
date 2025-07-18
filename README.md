@@ -14,35 +14,6 @@ Google OAuth Login: Allows users to authenticate via Google for a personalized e
 Responsive UI: Built with React, Tailwind CSS, and Bootstrap for a user-friendly interface across devices.
 Error Handling: Provides standardized error responses and logging for debugging and reliability.
 
-Project Structure
-medic-landing/
-├── backend/                    # FastAPI backend
-│   ├── data/                   # Storage for uploads and documents
-│   ├── config.py               # Configuration settings (API keys, file paths)
-│   ├── database.py             # SQLite database management
-│   ├── main.py                 # FastAPI application with API endpoints
-│   ├── medical_examples.json   # Few-shot examples for AI responses
-│   ├── modells.py              # Pydantic models for data validation
-│   ├── services.py             # Core services (RAG, AI, document processing)
-│   ├── test_services.py        # Unit tests for backend services
-├── src/                        # React frontend
-│   ├── assets/                 # Images (logo, medic avatar)
-│   ├── components/             # React components
-│   │   ├── auth.jsx            # Google OAuth login component
-│   │   ├── chatbot.jsx         # Chatbot interface
-│   │   ├── chatbot.css         # Chatbot-specific styles
-│   │   ├── feedback.jsx        # Feedback form (Google Forms iframe)
-│   │   ├── forgot_password.jsx # Placeholder for password reset
-│   │   ├── landing.jsx         # Landing page
-│   ├── App.tsx                 # Main app with routing
-│   ├── index.css               # Global Tailwind CSS styles
-│   ├── main.tsx                # React entry point
-├── index.html                  # HTML entry point
-├── package.json                # Frontend dependencies and scripts
-├── tailwind.config.js          # Tailwind CSS configuration
-├── vite.config.ts              # Vite configuration
-├── .gitignore                  # Git ignore rules
-
 Prerequisites
 Before setting up the application, ensure you have the following installed:
 
