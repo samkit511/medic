@@ -95,7 +95,7 @@ const Chatbot = () => {
   const getInitialGreeting = async (sessionIdToUse = sessionId) => {
     try {
       // Send empty message to trigger greeting
-      const response = await api.post('/api/query', {
+      const response = await api.post('/api/query/test', {
         message: "__INITIAL_GREETING__",
         session_id: sessionIdToUse,
       });
@@ -139,7 +139,7 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/api/query', {
+      const response = await api.post('/api/query/test', {
         message: input,
         session_id: sessionId,
       });
