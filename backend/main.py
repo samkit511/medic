@@ -9,10 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from services import medical_chatbot
-from config import settings, is_emergency_symptom
-from database import Database
-from auth import AuthService, session_manager, get_current_user, get_current_user_optional
+# Handle both direct execution and module import
+try:
+    # Try relative imports first (when imported as module)
+    from .services import medical_chatbot
+    from .config import settings, is_emergency_symptom
+    from .database import Database
+    from .auth import AuthService, session_manager, get_current_user, get_current_user_optional
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from services import medical_chatbot
+    from config import settings, is_emergency_symptom
+    from database import Database
+    from auth import AuthService, session_manager, get_current_user, get_current_user_optional
 from pydantic import BaseModel
 
 # Authentication request models
@@ -102,6 +111,87 @@ async def root():
             "/docs": "GET - API documentation"
         }
     }
+
+@app.post("/api/query/test", tags=["Chat"], description="Process a test medical query without authentication")
+async def chat_endpoint_test(request_data: dict):
+    try:
+        chat_request = ChatRequest(request_data)
+        chat_request.validate()
+        
+        logger.info(f"Processing query: {chat_request.message[:50]}... for session: {chat_request.session_id}")
+        
+        # Use the clinical questionnaire system first
+        result = await medical_chatbot.process_user_input(
+            user_input=chat_request.message,
+            session_id=chat_request.session_id
+        )
+        
+        # Check if we have a next question to ask
+        if "next_question" in result:
+            return {
+                "success": True,
+                "response": result["next_question"],
+                "urgency_level": "normal",
+                "emergency": False,
+                "possible_conditions": [],
+                "session_id": result["session_id"],
+                "timestamp": datetime.now().isoformat(),
+                "disclaimer": "Please answer all questions to receive accurate medical guidance.",
+                "confidence": 0.0,
+                "explanation": "Collecting patient information through clinical questionnaire",
+                "is_clinical_question": True
+            }
+        # If all questions are answered, return the diagnosis
+        elif "diagnosis" in result:
+            diagnosis = result["diagnosis"]
+            if not diagnosis["success"]:
+                logger.error(f"Diagnosis processing failed: {diagnosis.get('error', 'Unknown error')}")
+                raise HTTPException(status_code=500, detail=diagnosis.get("error", "Processing failed"))
+            
+            return {
+                "success": True,
+                "response": diagnosis["response"],
+                "urgency_level": diagnosis["urgency_level"],
+                "emergency": diagnosis.get("emergency", False),
+                "possible_conditions": diagnosis.get("possible_conditions", []),
+                "session_id": diagnosis["session_id"],
+                "timestamp": datetime.now().isoformat(),
+                "disclaimer": diagnosis.get("disclaimer", "Always consult a healthcare professional."),
+                "confidence": diagnosis.get("confidence", 0.0),
+                "explanation": diagnosis.get("explanation", "N/A"),
+                "is_clinical_question": False
+            }
+        else:
+            # Fallback to direct medical query processing (shouldn't happen normally)
+            direct_result = await medical_chatbot.process_medical_query(
+                message=chat_request.message,
+                session_id=chat_request.session_id
+            )
+            
+            if not direct_result["success"]:
+                logger.error(f"Direct query processing failed: {direct_result.get('error', 'Unknown error')}")
+                raise HTTPException(status_code=500, detail=direct_result.get("error", "Processing failed"))
+            
+            return {
+                "success": True,
+                "response": direct_result["response"],
+                "urgency_level": direct_result["urgency_level"],
+                "emergency": direct_result.get("emergency", False),
+                "possible_conditions": direct_result.get("possible_conditions", []),
+                "session_id": direct_result["session_id"],
+                "timestamp": datetime.now().isoformat(),
+                "disclaimer": direct_result.get("disclaimer", "Always consult a healthcare professional."),
+                "confidence": direct_result.get("confidence", 0.0),
+                "explanation": direct_result.get("explanation", "N/A"),
+                "is_clinical_question": False
+            }
+        
+    except ValueError as e:
+        logger.error(f"Query validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.post("/api/query", tags=["Chat"], description="Process a medical query")
 async def chat_endpoint(request_data: dict, current_user: Dict[str, Any] = Depends(get_current_user)):
