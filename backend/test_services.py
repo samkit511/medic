@@ -1,7 +1,13 @@
 import asyncio
 import os
 import logging
-from services import medical_chatbot
+# Handle both direct execution and module import
+try:
+    # Try relative imports first (when imported as module)
+    from .services import medical_chatbot
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from services import medical_chatbot
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
