@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     frontend_port: int = 8501
     
     # AI API Keys
-    huggingface_api_token: str = os.getenv("HUGGINGFACE_API_TOKEN", "")
-    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    huggingface_api_token: str = ""
+    groq_api_key: str = ""
     
     # JWT Authentication
     jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "")
