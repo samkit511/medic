@@ -216,7 +216,7 @@ const Chatbot = () => {
         ...prev,
         {
           role: 'bot',
-          content: `<strong>Document processed:</strong> ${data.file_name || file.name}<br>${data.document_analysis?.summary || 'No summary available.'}`,
+          content: `<strong>Document processed:</strong> ${data.file_name || file.name}<br>${data.analysis?.response || 'No summary available.'}`,
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
