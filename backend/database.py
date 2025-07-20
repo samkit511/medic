@@ -56,14 +56,18 @@ class Database:
                 logger.warning(f"User already exists: {username}")
 
     def get_user(self, username: str):
-        with self.conn.cursor() as cursor:
+        cursor = self.conn.cursor()
+        try:
             cursor.execute('SELECT username, password FROM users WHERE username = ?', (username,))
             user_result = cursor.fetchone()
             logger.debug(f"Retrieved user: {username if user_result else 'None'}")
             return user_result
+        finally:
+            cursor.close()
 
     def update_password(self, username: str, hashed_password: bytes):
-        with self.conn.cursor() as cursor:
+        cursor = self.conn.cursor()
+        try:
             cursor.execute('UPDATE users SET password = ? WHERE username = ?', 
                           (hashed_password, username))
             self.conn.commit()
@@ -71,27 +75,38 @@ class Database:
                 logger.info(f"Password updated for user: {username}")
             else:
                 logger.warning(f"User not found for password update: {username}")
+        finally:
+            cursor.close()
 
     def add_chat(self, username: str, user_message: str, bot_response: str):
-        with self.conn.cursor() as cursor:
+        cursor = self.conn.cursor()
+        try:
             cursor.execute('INSERT INTO chats (username, user_message, bot_response, timestamp) VALUES (?, ?, ?, ?)',
                           (username, user_message, bot_response, datetime.now()))
             self.conn.commit()
             logger.info(f"Chat saved for user: {username}")
+        finally:
+            cursor.close()
 
     def get_chat_history(self, username: str):
-        with self.conn.cursor() as cursor:
+        cursor = self.conn.cursor()
+        try:
             cursor.execute('SELECT id, username, user_message, bot_response, timestamp FROM chats WHERE username = ? ORDER BY timestamp', (username,))
             history = cursor.fetchall()
             logger.info(f"Retrieved {len(history)} chat messages for user: {username}")
             return history
+        finally:
+            cursor.close()
 
     def add_upload(self, username: str, filename: str, filepath: str):
-        with self.conn.cursor() as cursor:
+        cursor = self.conn.cursor()
+        try:
             cursor.execute('INSERT INTO uploads (username, filename, filepath, timestamp) VALUES (?, ?, ?, ?)',
                           (username, filename, filepath, datetime.now()))
             self.conn.commit()
             logger.info(f"Upload saved for user: {username}, file: {filename}")
+        finally:
+            cursor.close()
 
     def close(self):
         if hasattr(self, 'conn') and self.conn:
