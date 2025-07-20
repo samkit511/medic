@@ -318,6 +318,18 @@ async def upload_document(
             logger.error(f"Document processing failed: {result['error']}")
             raise HTTPException(status_code=500, detail=f"Document processing failed: {result['error']}")
         
+        # Update conversation context with document analysis
+        user_message = f"I uploaded a document: {file.filename}"
+        bot_response = f"Document analyzed successfully. {result.get('analysis', {}).get('response', 'Medical information extracted from your document.')}"
+        
+        # Save to conversation context
+        medical_chatbot.context_service.update_context(
+            session_id=session_id,
+            message=user_message,
+            response=bot_response,
+            medical_info=result["medical_info"]
+        )
+        
         logger.info(f"Document processed successfully: {file.filename}")
         return {
             "success": True,
@@ -328,7 +340,8 @@ async def upload_document(
             "medical_info": result["medical_info"],
             "analysis": result.get("analysis", {}),
             "session_id": session_id,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "conversation_updated": True
         }
         
     except HTTPException:
