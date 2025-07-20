@@ -18,17 +18,17 @@ class Settings(BaseSettings):
     frontend_port: int = 8501
     
     # AI API Keys
-    huggingface_api_token: str = ""
-    groq_api_key: str = ""
+    huggingface_api_token: str = os.getenv("huggingface_api_token", "")
+    groq_api_key: str = os.getenv("groq_api_key", "")
     
     # JWT Authentication
-    jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "")
+    jwt_secret_key: str = os.getenv("jwt_secret_key", "")
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 30
     
     # Google OAuth
-    google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    google_client_id: str = os.getenv("google_client_id", "")
     
     # CORS Configuration
     allowed_origins: List[str] = ["http://localhost:8501", "http://localhost:3000", "http://localhost:5173"]
@@ -41,10 +41,12 @@ class Settings(BaseSettings):
         "unconscious", "stroke", "heart attack", "poisoning"
     ]
     
-    # AI Models
+    # AI Models - Updated to use accessible HuggingFace models
     hf_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    hf_medical_model: str = "microsoft/DialoGPT-large"
-    groq_model: str = "llama3-8b-8192"
+    hf_medical_model: str = "microsoft/DialoGPT-medium"  # Accessible conversational model for medical queries
+    hf_text_generation_model: str = "gpt2"  # Reliable text generation model
+    hf_biobert_model: str = "pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb"  # BioBERT for medical NLI
+    groq_model: str = "llama3-8b-8192"  # Medical-capable Llama3
     
     # File Storage
     upload_dir: str = "data/uploads"
