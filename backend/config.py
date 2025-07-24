@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     hf_medical_model: str = "microsoft/DialoGPT-medium"  # Accessible conversational model for medical queries
     hf_text_generation_model: str = "gpt2"  # Reliable text generation model
     hf_biobert_model: str = "pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb"  # BioBERT for medical NLI
-    groq_model: str = "llama3-8b-8192"  # Medical-capable Llama3
+    groq_model: str = "llama3-70b-8192" # Medical-capable Llama3
     
     # File Storage
     upload_dir: str = "data/uploads"
