@@ -1,11 +1,11 @@
-# Core dependencies
+# Core Dependencies
 fastapi==0.115.0
 uvicorn==0.32.0
 pydantic==2.9.2
 pydantic-settings==2.5.2
 requests==2.32.3
 
-# AI and ML dependencies
+# AI and Machine Learning
 groq==0.11.0
 huggingface_hub==0.26.0
 sentence-transformers==3.2.1
@@ -14,21 +14,52 @@ deep-translator==1.11.4
 cachetools==5.5.0
 tenacity==9.0.0
 
-# Database and file processing
+# Database and File Processing
 PyPDF2==3.0.1
 pytesseract==0.3.13
 Pillow==10.4.0
 
-# Logging and utilities
+# Database Encryption
+pysqlcipher3==1.2.0
+cryptography>=3.4.8
+
+# Logging and Utilities
 python-dotenv==1.0.1
 
-# Testing and auth
-pytest==8.3.3
+# Authentication & Authorization
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
-# Google auth integration
+# Google Auth Integration
 google-auth==2.23.4
 google-auth-oauthlib==1.1.0
 google-auth-httplib2==0.1.1
+
+# Enhanced Testing Dependencies
+pytest==8.3.3
+pytest-asyncio>=0.21.0
+pytest-benchmark>=4.0.0
+pytest-xdist>=3.0.0
+pytest-cov>=4.0.0
+pytest-html>=3.0.0
+hypothesis>=6.68.0
+
+# HTTP and Async Testing
+aiohttp>=3.8.0
+httpx>=0.24.0
+
+# Performance and Monitoring
+psutil>=5.9.0
+memory-profiler>=0.60.0
+
+# Data Generation and Analysis
+faker>=18.0.0
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Async Testing Utilities
+asyncio-mqtt>=0.13.0
+
+# JWT and Security Testing
+PyJWT>=2.6.0

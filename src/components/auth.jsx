@@ -5,13 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 
 const Auth = () => {
-  const clientId = '';
+  const clientId = '761585986838-odetbtp33g2gtrp82ikrvmbt51r5f250.apps.googleusercontent.com';
   const navigate = useNavigate();
 
   const handleSuccess = async (credentialResponse) => {
     try {
       // Send the Google ID token to backend for verification and JWT creation
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch('https://localhost:8443/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

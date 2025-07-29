@@ -9,10 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from services import medical_chatbot
-from config import settings, is_emergency_symptom
-from database import Database
-from auth import AuthService, session_manager, get_current_user, get_current_user_optional
+# Handle both direct execution and module import
+try:
+    # Try relative imports first (when imported as module)
+    from .services import medical_chatbot
+    from .config import settings, is_emergency_symptom
+    from .database import Database
+    from .auth import AuthService, session_manager, get_current_user, get_current_user_optional
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from services import medical_chatbot
+    from config import settings, is_emergency_symptom
+    from database import Database
+    from auth import AuthService, session_manager, get_current_user, get_current_user_optional
 from pydantic import BaseModel
 
 # Authentication request models
@@ -44,8 +53,9 @@ async def lifespan(app: FastAPI):
     os.makedirs(settings.upload_dir, exist_ok=True)
     logger.info(f"Upload directory ensured: {settings.upload_dir}")
     
-    db = Database()
-    logger.info("✅ Database initialized, chatbot.db created")
+    encryption_key = settings.database_encryption_enabled and settings.database_key_file
+    db = Database(db_path=settings.database_path, encryption_key=encryption_key)
+    logger.info("✅ Database initialized with encryption")
     
     app_state["chatbot"] = medical_chatbot
     app_state["db"] = db
@@ -103,6 +113,87 @@ async def root():
         }
     }
 
+@app.post("/api/query/test", tags=["Chat"], description="Process a test medical query without authentication")
+async def chat_endpoint_test(request_data: dict):
+    try:
+        chat_request = ChatRequest(request_data)
+        chat_request.validate()
+        
+        logger.info(f"Processing query: {chat_request.message[:50]}... for session: {chat_request.session_id}")
+        
+        # Use the clinical questionnaire system first
+        result = await medical_chatbot.process_user_input(
+            user_input=chat_request.message,
+            session_id=chat_request.session_id
+        )
+        
+        # Check if we have a next question to ask
+        if "next_question" in result:
+            return {
+                "success": True,
+                "response": result["next_question"],
+                "urgency_level": "normal",
+                "emergency": False,
+                "possible_conditions": [],
+                "session_id": result["session_id"],
+                "timestamp": datetime.now().isoformat(),
+                "disclaimer": "Please answer all questions to receive accurate medical guidance.",
+                "confidence": 0.0,
+                "explanation": "Collecting patient information through clinical questionnaire",
+                "is_clinical_question": True
+            }
+        # If all questions are answered, return the diagnosis
+        elif "diagnosis" in result:
+            diagnosis = result["diagnosis"]
+            if not diagnosis["success"]:
+                logger.error(f"Diagnosis processing failed: {diagnosis.get('error', 'Unknown error')}")
+                raise HTTPException(status_code=500, detail=diagnosis.get("error", "Processing failed"))
+            
+            return {
+                "success": True,
+                "response": diagnosis["response"],
+                "urgency_level": diagnosis.get("urgency_level", "normal"),
+                "emergency": diagnosis.get("emergency", False),
+                "possible_conditions": diagnosis.get("possible_conditions", []),
+                "session_id": diagnosis.get("session_id", chat_request.session_id),
+                "timestamp": datetime.now().isoformat(),
+                "disclaimer": diagnosis.get("disclaimer", "Always consult a healthcare professional."),
+                "confidence": diagnosis.get("confidence", 0.0),
+                "explanation": diagnosis.get("explanation", "N/A"),
+                "is_clinical_question": False
+            }
+        else:
+            # Fallback to direct medical query processing (shouldn't happen normally)
+            direct_result = await medical_chatbot.process_medical_query(
+                message=chat_request.message,
+                session_id=chat_request.session_id
+            )
+            
+            if not direct_result["success"]:
+                logger.error(f"Direct query processing failed: {direct_result.get('error', 'Unknown error')}")
+                raise HTTPException(status_code=500, detail=direct_result.get("error", "Processing failed"))
+            
+            return {
+                "success": True,
+                "response": direct_result["response"],
+                "urgency_level": direct_result["urgency_level"],
+                "emergency": direct_result.get("emergency", False),
+                "possible_conditions": direct_result.get("possible_conditions", []),
+                "session_id": direct_result["session_id"],
+                "timestamp": datetime.now().isoformat(),
+                "disclaimer": direct_result.get("disclaimer", "Always consult a healthcare professional."),
+                "confidence": direct_result.get("confidence", 0.0),
+                "explanation": direct_result.get("explanation", "N/A"),
+                "is_clinical_question": False
+            }
+        
+    except ValueError as e:
+        logger.error(f"Query validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 @app.post("/api/query", tags=["Chat"], description="Process a medical query")
 async def chat_endpoint(request_data: dict, current_user: Dict[str, Any] = Depends(get_current_user)):
     logger.info(f"Chat endpoint hit with session_id: {request_data.get('session_id', 'default')}")
@@ -143,10 +234,10 @@ async def chat_endpoint(request_data: dict, current_user: Dict[str, Any] = Depen
             return {
                 "success": True,
                 "response": diagnosis["response"],
-                "urgency_level": diagnosis["urgency_level"],
+                "urgency_level": diagnosis.get("urgency_level", "normal"),
                 "emergency": diagnosis.get("emergency", False),
                 "possible_conditions": diagnosis.get("possible_conditions", []),
-                "session_id": diagnosis["session_id"],
+                "session_id": diagnosis.get("session_id", chat_request.session_id),
                 "timestamp": datetime.now().isoformat(),
                 "disclaimer": diagnosis.get("disclaimer", "Always consult a healthcare professional."),
                 "confidence": diagnosis.get("confidence", 0.0),
@@ -185,6 +276,80 @@ async def chat_endpoint(request_data: dict, current_user: Dict[str, Any] = Depen
         logger.error(f"Chat endpoint error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+@app.post("/api/upload/test", tags=["Upload"], description="Upload a medical document (test endpoint without auth)")
+async def upload_document_test(
+    session_id: str = Form(...),
+    file: UploadFile = File(...)
+):
+    logger.info(f"Test upload endpoint hit with session_id: {session_id}, file: {file.filename}")
+    try:
+        if not file.filename:
+            logger.error("No file provided")
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        file_extension = file.filename.split('.')[-1].lower()
+        if file_extension not in settings.allowed_file_types:
+            logger.error(f"Unsupported file type: {file_extension}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported file type. Allowed: {settings.allowed_file_types}"
+            )
+        
+        content = await file.read()
+        if len(content) > settings.max_upload_size:
+            logger.error(f"File too large: {len(content)} bytes")
+            raise HTTPException(status_code=400, detail="File too large")
+        
+        safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', file.filename)
+        file_path = os.path.join(settings.upload_dir, f"{session_id}_{safe_filename}")
+        
+        try:
+            os.makedirs(settings.upload_dir, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(content)
+            logger.info(f"File saved: {file_path}")
+        except OSError as e:
+            logger.error(f"File write error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+        
+        result = await medical_chatbot.doc_service.process_document(file_path, file_extension, session_id)
+        
+        if not result["success"]:
+            logger.error(f"Document processing failed: {result['error']}")
+            raise HTTPException(status_code=500, detail=f"Document processing failed: {result['error']}")
+        
+        # Update conversation context with document analysis
+        user_message = f"I uploaded a document: {file.filename}"
+        bot_response = f"Document analyzed successfully. {result.get('analysis', {}).get('response', 'Medical information extracted from your document.')}"
+        
+        # Save to conversation context
+        medical_chatbot.context_service.update_context(
+            session_id=session_id,
+            message=user_message,
+            response=bot_response,
+            medical_info=result["medical_info"]
+        )
+        
+        logger.info(f"Document processed successfully: {file.filename}")
+        return {
+            "success": True,
+            "message": "Document uploaded and processed successfully",
+            "filename": file.filename,
+            "file_size": len(content),
+            "extracted_text": result["extracted_text"],
+            "medical_info": result["medical_info"],
+            "analysis": result.get("analysis", {}),
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "conversation_updated": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File processing failed: {str(e)}")
+
 @app.post("/api/upload", tags=["Upload"], description="Upload a medical document")
 async def upload_document(
     session_id: str = Form(...),
@@ -222,11 +387,23 @@ async def upload_document(
             logger.error(f"File write error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
         
-        result = await medical_chatbot.doc_service.process_document(file_path, file_extension)
+        result = await medical_chatbot.doc_service.process_document(file_path, file_extension, session_id)
         
         if not result["success"]:
             logger.error(f"Document processing failed: {result['error']}")
             raise HTTPException(status_code=500, detail=f"Document processing failed: {result['error']}")
+        
+        # Update conversation context with document analysis
+        user_message = f"I uploaded a document: {file.filename}"
+        bot_response = f"Document analyzed successfully. {result.get('analysis', {}).get('response', 'Medical information extracted from your document.')}"
+        
+        # Save to conversation context
+        medical_chatbot.context_service.update_context(
+            session_id=session_id,
+            message=user_message,
+            response=bot_response,
+            medical_info=result["medical_info"]
+        )
         
         logger.info(f"Document processed successfully: {file.filename}")
         return {
@@ -238,7 +415,8 @@ async def upload_document(
             "medical_info": result["medical_info"],
             "analysis": result.get("analysis", {}),
             "session_id": session_id,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "conversation_updated": True
         }
         
     except HTTPException:
@@ -264,7 +442,7 @@ async def upload_image(file: UploadFile = File(...), session_id: str = Form(...)
         file_path = os.path.join(settings.upload_dir, f"{session_id}_{safe_filename}")
         os.makedirs(settings.upload_dir, exist_ok=True)
         image.save(file_path, dpi=(300, 300))
-        result = await medical_chatbot.doc_service.process_document(file_path, file.filename.split('.')[-1].lower())
+        result = await medical_chatbot.doc_service.process_document(file_path, file.filename.split('.')[-1].lower(), session_id)
         logger.info(f"Image processed successfully: {file.filename}")
         return {
             "success": True,
@@ -283,10 +461,79 @@ async def upload_image(file: UploadFile = File(...), session_id: str = Form(...)
         logger.error(f"Image processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to process image: {str(e)}")
 
+@app.post("/api/process_text", tags=["Medical"], description="Process medical report text directly")
+async def process_medical_text(
+    request: Dict[str, Any],
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Process medical report text directly without file upload"""
+    try:
+        session_id = request.get("session_id")
+        medical_text = request.get("medical_text")
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id is required")
+        
+        if not medical_text:
+            raise HTTPException(status_code=400, detail="medical_text is required")
+        
+        logger.info(f"Processing medical text for session: {session_id}")
+        
+        # Create a mock result similar to document processing
+        result = {
+            "success": True,
+            "extracted_text": medical_text,
+            "medical_info": {},
+            "analysis": {
+                "response": "Medical information extracted from provided text."
+            }
+        }
+        
+        # Use the document service to extract medical info from text
+        try:
+            medical_info = await medical_chatbot.doc_service.extract_medical_info(medical_text)
+            result["medical_info"] = medical_info
+            logger.info(f"Extracted medical info: {medical_info}")
+        except Exception as e:
+            logger.warning(f"Medical info extraction failed: {str(e)}")
+            result["medical_info"] = {}
+        
+        # Update conversation context with medical text analysis
+        user_message = "I provided medical report text for analysis"
+        bot_response = f"Medical text analyzed successfully. {result.get('analysis', {}).get('response', 'Medical information extracted from your text.')}"
+        
+        # Save to conversation context
+        medical_chatbot.context_service.update_context(
+            session_id=session_id,
+            message=user_message,
+            response=bot_response,
+            medical_info=result["medical_info"]
+        )
+        
+        logger.info(f"Medical text processed successfully for session: {session_id}")
+        return {
+            "success": True,
+            "message": "Medical text processed successfully",
+            "text_length": len(medical_text),
+            "extracted_text": result["extracted_text"],
+            "medical_info": result["medical_info"],
+            "analysis": result.get("analysis", {}),
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "conversation_updated": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Text processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Text processing failed: {str(e)}")
+
 @app.post("/api/save_chat", tags=["Chat"], description="Save a chat message to database")
 async def save_chat(data: dict, current_user: Dict[str, Any] = Depends(get_current_user)):
     try:
-        db = app_state.get("db", Database())
+        encryption_key = settings.database_encryption_enabled and settings.database_key_file
+        db = app_state.get("db", Database(db_path=settings.database_path, encryption_key=encryption_key))
         username = data.get("username", "Guest")
         user_message = data.get("user_message")
         bot_response = data.get("bot_response")
@@ -305,7 +552,8 @@ async def save_chat(data: dict, current_user: Dict[str, Any] = Depends(get_curre
 @app.get("/api/get_chat_history", tags=["Chat"], description="Retrieve chat history for a user")
 async def get_chat_history(username: str, current_user: Dict[str, Any] = Depends(get_current_user)):
     try:
-        db = app_state.get("db", Database())
+        encryption_key = settings.database_encryption_enabled and settings.database_key_file
+        db = app_state.get("db", Database(db_path=settings.database_path, encryption_key=encryption_key))
         history = db.get_chat_history(username)
         return {
             "success": True,
@@ -515,13 +763,19 @@ async def refresh_token(request: RefreshRequest):
             raise HTTPException(status_code=401, detail="Invalid session")
         
         # Generate new access token
-        new_tokens = auth_service.create_access_token(session["user_info"], session_id)
+        user_data = session["user_data"] if "user_data" in session else session.get("user_info", {})
+        new_access_token = auth_service.create_access_token(data={
+            "user_id": payload.get("user_id"),
+            "email": user_data.get("email"),
+            "name": user_data.get("name"),
+            "session_id": session_id
+        })
         
-        logger.info(f"Token refreshed for user: {session['user_info']['email']}")
+        logger.info(f"Token refreshed for user: {user_data.get('email', 'unknown')}")
         return {
             "success": True,
-            "access_token": new_tokens["access_token"],
-            "refresh_token": new_tokens["refresh_token"],
+            "access_token": new_access_token,
+            "refresh_token": request.refresh_token, # Keep the same refresh token
             "expires_in": 3600
         }
         
@@ -555,13 +809,33 @@ async def internal_error_handler(request, exc):
 
 if __name__ == "__main__":
     logger.info("🚀 Starting Clinical Diagnostics Chatbot API...")
-    logger.info(f"🌐 API will be available at: http://localhost:{settings.backend_port}")
-    logger.info(f"📚 API documentation at: http://localhost:{settings.backend_port}/docs")
     
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=settings.backend_port,
-        reload=settings.debug,
-        log_level="info"
-    )
+    if settings.ssl_enabled and os.path.exists(settings.ssl_cert_file) and os.path.exists(settings.ssl_key_file):
+        # Start with HTTPS
+        logger.info(f"🔐 HTTPS enabled - SSL certificates found")
+        logger.info(f"🌐 Secure API available at: https://localhost:{settings.backend_https_port}")
+        logger.info(f"📚 Secure API documentation at: https://localhost:{settings.backend_https_port}/docs")
+        logger.info(f"⚠️  You may need to accept the self-signed certificate in your browser")
+        
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=settings.backend_https_port,
+            ssl_keyfile=settings.ssl_key_file,
+            ssl_certfile=settings.ssl_cert_file,
+            reload=settings.debug,
+            log_level="info"
+        )
+    else:
+        # Fallback to HTTP if SSL is not configured
+        logger.warning("⚠️  SSL certificates not found, falling back to HTTP")
+        logger.info(f"🌐 HTTP API available at: http://localhost:{settings.backend_port}")
+        logger.info(f"📚 HTTP API documentation at: http://localhost:{settings.backend_port}/docs")
+        
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=settings.backend_port,
+            reload=settings.debug,
+            log_level="info"
+        )

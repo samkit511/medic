@@ -1,11 +1,12 @@
-# Logs
-logs
+# Logs (but keep HIPAA audit logs)
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+# Exclude general logs but keep HIPAA audit logs
+!backend/logs/hipaa_audit.log
 
 # Node modules and build outputs
 node_modules
@@ -13,8 +14,9 @@ dist
 dist-ssr
 *.local
 
-# Environment files
+# Environment files (keep .env.example for reference)
 .env
+!.env.example
 
 # Editor directories and files
 .vscode/*
@@ -30,6 +32,23 @@ dist-ssr
 # Backend-specific ignores
 backend/__pycache__/
 backend/*.pyc
+backend/.pytest_cache/
+backend/.hypothesis/
 backend/data/uploads/
 backend/data/documents/
-backend/chatbot.db
+backend/data/*.db
+backend/data/db_key.key
+
+# Test files and caches
+.pytest_cache/
+.coverage
+*.pyc
+__pycache__/
+
+# SSL certificates (keep the generated ones but ignore sensitive keys)
+!backend/certs/localhost.crt
+backend/certs/*.pfx
+
+# Frontend build files
+build/
+coverage/

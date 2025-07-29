@@ -34,12 +34,34 @@
   background: #e0f7fa;
   color: #222;
   margin-right: auto;
-  max-width: 70%;
+  max-width: 80%;
   border-bottom-left-radius: 0.2rem;
   border-top-left-radius: 1.2rem;
   border-bottom-right-radius: 1.2rem;
   border-top-right-radius: 1.2rem;
   border: 1px solid #b2ebf2;
+}
+
+/* === Avatar Styling === */
+.chat-message img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid #4f8cff;
+  object-fit: cover;
+  margin-top: 2px;
+}
+
+.chat-message .flex {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.chat-message .flex-1 {
+  flex: 1;
+  min-width: 0;
 }
 
 @keyframes fadeIn {

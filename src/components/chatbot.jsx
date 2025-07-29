@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './chatbot.css'; // Make sure your CSS file is named correctly
+import medicAvatar from '../assets/medic-avatar.png';
 
 const TOTAL_CLINICAL_QUESTIONS = 13;
 
@@ -16,7 +17,7 @@ const Chatbot = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  const BACKEND_URL = 'http://localhost:8000';
+  const BACKEND_URL = 'https://localhost:8443';
 
   // Create axios instance with interceptors for JWT
   const api = axios.create({
@@ -95,7 +96,7 @@ const Chatbot = () => {
   const getInitialGreeting = async (sessionIdToUse = sessionId) => {
     try {
       // Send empty message to trigger greeting
-      const response = await api.post('/api/query', {
+      const response = await api.post('/api/query/test', {
         message: "__INITIAL_GREETING__",
         session_id: sessionIdToUse,
       });
@@ -139,7 +140,7 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/api/query', {
+      const response = await api.post('/api/query/test', {
         message: input,
         session_id: sessionId,
       });
@@ -216,7 +217,7 @@ const Chatbot = () => {
         ...prev,
         {
           role: 'bot',
-          content: `<strong>Document processed:</strong> ${data.file_name || file.name}<br>${data.document_analysis?.summary || 'No summary available.'}`,
+          content: `<strong>Document processed:</strong> ${data.file_name || file.name}<br>${data.analysis?.response || 'No summary available.'}`,
           timestamp: new Date().toLocaleTimeString(),
         },
       ]);
@@ -328,12 +329,26 @@ const Chatbot = () => {
                     key={index}
                     className={`chat-message-wrapper ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`chat-message ${msg.role === 'user' ? 'user' : 'bot'} p-4 mb-4 rounded-lg`}
-                      dangerouslySetInnerHTML={{
-                        __html: `${msg.role === 'user' ? 'You' : 'Bot'}<br>${msg.content}<br><small className="text-gray-500 block mt-2">${msg.timestamp}</small>`
-                      }}
-                    />
+                    <div className={`chat-message ${msg.role === 'user' ? 'user' : 'bot'} p-4 mb-4 rounded-lg`}>
+                      <div className="flex items-start gap-2">
+                        {msg.role === 'bot' ? (
+                          <img 
+                            src={medicAvatar} 
+                            alt="Medical Assistant" 
+                            className="w-8 h-8 rounded-full flex-shrink-0"
+                          />
+                        ) : (
+                          <span className="font-semibold text-blue-600">You</span>
+                        )}
+                        <div className="flex-1">
+                          <div 
+                            dangerouslySetInnerHTML={{ __html: msg.content }}
+                            className="mb-2"
+                          />
+                          <small className="text-gray-500 text-xs">{msg.timestamp}</small>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

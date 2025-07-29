@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-secret-key-for-development-only-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -53,17 +53,38 @@ class AuthService:
         except jwt.ExpiredSignatureError:
             logger.warning("Token has expired")
             return None
-        except jwt.JWTError as e:
+        except jwt.InvalidTokenError as e:
             logger.error(f"JWT error: {e}")
             return None
 
     @staticmethod
+    def verify_refresh_token(token: str) -> Optional[Dict[str, Any]]:
+        """Verify JWT refresh token"""
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get("type") != "refresh":
+                logger.error("Invalid token type for refresh")
+                return None
+            return payload
+        except jwt.ExpiredSignatureError:
+            logger.warning("Refresh token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.error(f"JWT error in refresh token: {e}")
+            return None
+    
+    @staticmethod
     def verify_google_token(token: str) -> Optional[Dict[str, Any]]:
         """Verify Google OAuth token"""
         try:
-            # Verify the token with Google
+            # Skip Google verification if client ID is not configured
+            if not GOOGLE_CLIENT_ID:
+                logger.warning("Google Client ID not configured, skipping Google token verification")
+                return None
+            
+            # Verify the token with Google with clock tolerance
             idinfo = id_token.verify_oauth2_token(
-                token, requests.Request(), GOOGLE_CLIENT_ID
+                token, requests.Request(), GOOGLE_CLIENT_ID, clock_skew_in_seconds=10
             )
             
             # Check if token is from our app
@@ -112,21 +133,25 @@ class SessionManager:
     
     def create_session(self, user_id: str, user_data: Dict[str, Any]) -> Dict[str, str]:
         """Create a new user session"""
+        session_id = f"session_{user_id}_{datetime.utcnow().timestamp()}"
+        
         access_token = AuthService.create_access_token(data={
             "user_id": user_id,
             "email": user_data.get("email"),
             "name": user_data.get("name"),
-            "session_id": f"session_{user_id}_{datetime.utcnow().timestamp()}"
+            "session_id": session_id
         })
         
         refresh_token = AuthService.create_refresh_token(data={
             "user_id": user_id,
-            "email": user_data.get("email")
+            "email": user_data.get("email"),
+            "session_id": session_id
         })
         
         # Store session info
         self.active_sessions[user_id] = {
             "user_data": user_data,
+            "session_id": session_id,
             "created_at": datetime.utcnow(),
             "last_activity": datetime.utcnow()
         }
@@ -173,6 +198,21 @@ class SessionManager:
             del self.active_sessions[user_id]
             return True
         return False
+    
+    def remove_session(self, session_id: str) -> bool:
+        """Remove session by session ID"""
+        for user_id, session_data in list(self.active_sessions.items()):
+            if session_data.get("session_id") == session_id:
+                del self.active_sessions[user_id]
+                return True
+        return False
+    
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get session by session ID"""
+        for user_id, session_data in self.active_sessions.items():
+            if session_data.get("session_id") == session_id:
+                return session_data
+        return None
     
     def is_session_active(self, user_id: str) -> bool:
         """Check if user session is active"""

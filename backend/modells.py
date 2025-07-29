@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -26,12 +26,15 @@ class AnalysisType(str, Enum):
 
 class ChatRequest(BaseModel):
     """Request model for chat/symptom analysis"""
+    model_config = ConfigDict(str_strip_whitespace=True)
+    
     message: str = Field(..., min_length=5, max_length=2000, description="User's message or symptoms")
     session_id: Optional[str] = Field(None, description="Session identifier for conversation tracking")
     analysis_type: AnalysisType = Field(AnalysisType.SYMPTOM_CHECK, description="Type of analysis requested")
     include_context: bool = Field(True, description="Whether to include conversation context")
     
-    @validator('message')
+    @field_validator('message')
+    @classmethod
     def validate_message(cls, v):
         if not v.strip():
             raise ValueError('Message cannot be empty or just whitespace')
@@ -54,6 +57,8 @@ class MedicalAnalysis(BaseModel):
 
 class ChatResponse(BaseModel):
     """Response model for chat/symptom analysis"""
+    model_config = ConfigDict()
+    
     response: str = Field(..., description="AI-generated medical response")
     urgency_level: UrgencyLevel = Field(UrgencyLevel.MODERATE, description="Urgency level of symptoms")
     confidence_score: float = Field(0.0, ge=0.0, le=1.0, description="Confidence in analysis (0-1)")
@@ -64,7 +69,8 @@ class ChatResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now, description="Response timestamp")
     disclaimer: str = Field("", description="Medical disclaimer")
     
-    @validator('confidence_score')
+    @field_validator('confidence_score')
+    @classmethod
     def validate_confidence(cls, v):
         return round(v, 2)
 
