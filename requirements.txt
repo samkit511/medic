@@ -1,0 +1,190 @@
+# =============================================================================
+# MEDICAL CHATBOT - COMPREHENSIVE REQUIREMENTS
+# =============================================================================
+# This requirements.txt contains all dependencies needed to run the Medical 
+# Chatbot application, including AI/ML models, testing frameworks, and utilities.
+# Compatible with Python 3.8+
+# =============================================================================
+
+# CORE WEB FRAMEWORK AND API
+# -----------------------------------------------------------------------------
+fastapi==0.115.0              # Modern, fast web framework for building APIs
+uvicorn[standard]==0.32.0     # ASGI server with performance extras
+pydantic==2.9.2               # Data validation using Python type annotations
+pydantic-settings==2.5.2      # Settings management for Pydantic
+requests==2.32.3               # HTTP library for API calls
+
+# AI AND MACHINE LEARNING CORE
+# -----------------------------------------------------------------------------
+groq==0.11.0                  # Groq AI API client for fast inference
+huggingface_hub==0.26.0       # Hugging Face Hub client
+sentence-transformers==3.2.1  # Semantic text embeddings
+transformers==4.45.2           # State-of-the-art ML models
+torch>=2.0.0                   # PyTorch for neural networks
+torchvision>=0.15.0           # Computer vision utilities
+tensorflow>=2.10.0            # Alternative ML framework
+scikit-learn>=1.3.0           # Traditional ML algorithms
+numpy>=1.24.0                 # Numerical computing
+scipy>=1.10.0                 # Scientific computing
+
+# NATURAL LANGUAGE PROCESSING
+# -----------------------------------------------------------------------------
+deep-translator==1.11.4       # Multi-service translation API
+nltk>=3.8.1                   # Natural language toolkit
+spacy>=3.6.0                  # Industrial-strength NLP
+textblob>=0.17.1              # Simplified text processing
+regex>=2023.8.8               # Enhanced regular expressions
+
+# MEDICAL AI MODELS AND TOOLS
+# -----------------------------------------------------------------------------
+# Note: These models will be downloaded automatically when first used
+biobert-pytorch>=0.1.0        # BioBERT for medical text understanding
+medical-ner>=0.1.0            # Medical named entity recognition
+clinical-text-analysis>=0.2.0 # Clinical text processing tools
+
+# DOCUMENT AND IMAGE PROCESSING
+# -----------------------------------------------------------------------------
+PyPDF2==3.0.1                 # PDF text extraction
+python-docx==1.1.0            # Microsoft Word document processing
+pytesseract==0.3.13          # OCR (Optical Character Recognition)
+Pillow==10.4.0                # Python Imaging Library
+openpyxl>=3.1.0              # Excel file processing
+markdown>=3.5.0               # Markdown processing
+
+# DATABASE AND SECURITY
+# -----------------------------------------------------------------------------
+# Note: Database encryption for HIPAA compliance
+pysqlcipher3==1.2.0           # Encrypted SQLite database
+cryptography>=41.0.0          # Cryptographic utilities
+sqlalchemy>=2.0.0             # SQL toolkit and ORM
+alembic>=1.12.0               # Database migration tool
+bcrypt>=4.0.0                 # Password hashing
+argon2-cffi>=23.1.0           # Advanced password hashing
+
+# AUTHENTICATION AND AUTHORIZATION
+# -----------------------------------------------------------------------------
+python-jose[cryptography]==3.3.0  # JWT token handling
+passlib[bcrypt]==1.7.4        # Password hashing library
+python-multipart==0.0.6       # Multipart form data parsing
+PyJWT>=2.8.0                  # JWT token encoding/decoding
+
+# GOOGLE SERVICES INTEGRATION
+# -----------------------------------------------------------------------------
+google-auth==2.23.4           # Google authentication library
+google-auth-oauthlib==1.1.0   # OAuth2 integration
+google-auth-httplib2==0.1.1   # HTTP transport for Google Auth
+google-cloud-storage>=2.10.0  # Google Cloud Storage (optional)
+
+# CONFIGURATION AND ENVIRONMENT
+# -----------------------------------------------------------------------------
+python-dotenv==1.0.1           # Load environment variables from .env
+click>=8.1.0                   # Command line interface creation
+rich>=13.5.0                   # Rich text and beautiful formatting
+typer>=0.9.0                   # Modern CLI framework
+
+# ASYNC AND HTTP UTILITIES
+# -----------------------------------------------------------------------------
+aiohttp>=3.9.0                 # Async HTTP client/server
+httpx>=0.27.0                  # Modern async HTTP client
+aiofiles>=23.2.1               # Async file operations
+websockets>=11.0.0             # WebSocket implementation
+
+# CACHING AND PERFORMANCE
+# -----------------------------------------------------------------------------
+cachetools==5.5.0              # Caching utilities
+redis>=5.0.0                   # Redis client for caching
+tenacity==9.0.0                # Retry library with exponential backoff
+
+# DATA PROCESSING AND ANALYSIS
+# -----------------------------------------------------------------------------
+pandas>=2.1.0                  # Data manipulation and analysis
+plotly>=5.17.0                 # Interactive plotting
+matplotlib>=3.8.0             # Static plotting
+seaborn>=0.13.0                # Statistical data visualization
+
+# MONITORING AND LOGGING
+# -----------------------------------------------------------------------------
+psutil>=5.9.5                  # System and process monitoring
+memory-profiler>=0.61.0        # Memory usage monitoring
+loguru>=0.7.2                  # Advanced logging
+prometheus-client>=0.18.0      # Metrics collection
+
+# DEVELOPMENT AND TESTING FRAMEWORK
+# -----------------------------------------------------------------------------
+pytest==8.3.3                  # Testing framework
+pytest-asyncio>=0.23.0         # Async testing support
+pytest-cov>=4.1.0              # Coverage reporting
+pytest-xdist>=3.3.1            # Parallel testing
+pytest-html>=4.1.0             # HTML test reports
+pytest-mock>=3.12.0            # Mocking utilities
+pytest-benchmark>=4.0.0        # Performance benchmarking
+hypothesis>=6.90.0             # Property-based testing
+
+# CODE QUALITY AND FORMATTING
+# -----------------------------------------------------------------------------
+black>=23.9.0                  # Code formatter
+isort>=5.12.0                  # Import sorting
+flake8>=6.1.0                  # Linting
+mypy>=1.6.0                    # Type checking
+bandit>=1.7.5                  # Security linting
+pre-commit>=3.5.0              # Git hooks
+
+# TEST DATA AND MOCKING
+# -----------------------------------------------------------------------------
+faker>=20.1.0                  # Generate fake data for testing
+factory-boy>=3.3.0             # Test data generation
+responses>=0.24.0              # Mock HTTP requests
+httpretty>=1.1.4               # HTTP request mocking
+
+# MEDICAL AND HEALTHCARE SPECIFIC
+# -----------------------------------------------------------------------------
+# Note: These may need to be installed from specific medical AI repositories
+fhir-resources>=7.0.0          # FHIR healthcare data standards
+hl7apy>=1.3.4                  # HL7 message parsing
+medical-imaging>=0.1.0         # Medical imaging utilities (if available)
+
+# DEPLOYMENT AND PRODUCTION
+# -----------------------------------------------------------------------------
+gunicorn>=21.2.0               # WSGI HTTP server
+whitenoise>=6.6.0              # Static file serving
+sentry-sdk[fastapi]>=1.38.0    # Error monitoring
+celery>=5.3.0                  # Distributed task queue
+flower>=2.0.1                  # Celery monitoring
+
+# BACKUP AND DATA MANAGEMENT
+# -----------------------------------------------------------------------------
+schedule>=1.2.0                # Task scheduling
+pytz>=2023.3                   # Timezone handling
+dateutil>=2.8.2                # Date parsing utilities
+
+# OPTIONAL DEPENDENCIES FOR ENHANCED FEATURES
+# -----------------------------------------------------------------------------
+# Uncomment these if you need additional AI capabilities:
+# openai>=1.3.0                # OpenAI API client
+# anthropic>=0.7.0             # Anthropic API client
+# cohere>=4.32.0               # Cohere API client
+# pinecone-client>=2.2.4       # Vector database client
+# chromadb>=0.4.15             # Vector database
+# langchain>=0.0.340           # LLM application framework
+# llamaindex>=0.9.0            # Data framework for LLMs
+
+# =============================================================================
+# INSTALLATION INSTRUCTIONS
+# =============================================================================
+# 1. Create a virtual environment:
+#    python -m venv medic_env
+#    
+# 2. Activate the virtual environment:
+#    Windows: medic_env\Scripts\activate
+#    Linux/Mac: source medic_env/bin/activate
+#    
+# 3. Install all requirements:
+#    pip install -r requirements.txt
+#    
+# 4. Install additional system dependencies:
+#    - Tesseract OCR: https://github.com/tesseract-ocr/tesseract
+#    - For GPU support, install CUDA toolkit
+#    
+# 5. Download required AI models (will happen automatically on first run):
+#    python -c "from transformers import pipeline; pipeline('sentiment-analysis')"
+# =============================================================================
