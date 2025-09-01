@@ -160,11 +160,15 @@ def format_response_for_html(text: str) -> str:
     text = '\n'.join(processed_lines)
     
     # Apply inline formatting
-    # Convert **text** to <strong>text</strong>
+    # Convert **text** to <strong>text</strong> (bold)
     text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
     
-    # Convert *text* to <em>text</em> (but not if it's already part of a <strong> tag)
-    text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<em>\1</em>', text)
+    # Convert *text* to <b>text</b> (bold) - for single asterisks
+    text = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<b>\1</b>', text)
+    
+    # Also handle cases where asterisks are at the beginning of lines (like *Shortness of breath:**)
+    text = re.sub(r'^\*([^*\n]+)\*\*', r'<b>\1</b>', text, flags=re.MULTILINE)
+    text = re.sub(r'^\*([^*\n]+):', r'<b>\1:</b>', text, flags=re.MULTILINE)
     
     # Convert _text_ to <em>text</em>
     text = re.sub(r'_([^_]+)_', r'<em>\1</em>', text)
@@ -292,17 +296,16 @@ class MedicalRAGService:
     def get_context_for_query(self, query: str) -> Dict[str, Any]:
         extracted_symptoms = self._extract_symptoms(query)
         relevant_knowledge = [self.medical_knowledge[s] for s in extracted_symptoms if s in self.medical_knowledge]
-        possible_conditions = []
-        for symptom in extracted_symptoms:
-            if symptom in self.symptom_database:
-                possible_conditions.extend([c["condition"] for c in sorted(
-                    self.symptom_database[symptom], key=lambda x: x["weight"], reverse=True
-                )[:3]])
+        
+        # Use improved condition scoring to get fewer, more relevant conditions
+        possible_conditions = self._score_and_filter_conditions(extracted_symptoms)
+        
         logger.info(f"Extracted symptoms: {extracted_symptoms}")
+        logger.info(f"Top conditions after filtering: {possible_conditions}")
         return {
             "extracted_symptoms": extracted_symptoms,
             "relevant_knowledge": relevant_knowledge,
-            "possible_conditions": list(set(possible_conditions)),
+            "possible_conditions": possible_conditions,
             "emergency_detected": is_emergency_symptom(query)
         }
 
@@ -345,6 +348,40 @@ class MedicalRAGService:
         
         logger.debug(f"Symptoms extracted: {symptoms}")
         return symptoms
+    
+    def _score_and_filter_conditions(self, extracted_symptoms: List[str]) -> List[str]:
+        """Score and filter conditions to return only the most relevant ones"""
+        if not extracted_symptoms:
+            return []
+        
+        condition_scores = {}
+        
+        # Score conditions based on symptom matches
+        for symptom in extracted_symptoms:
+            if symptom in self.symptom_database:
+                for condition_info in self.symptom_database[symptom]:
+                    condition = condition_info["condition"]
+                    weight = condition_info["weight"]
+                    
+                    if condition in condition_scores:
+                        # Boost score for conditions that match multiple symptoms
+                        condition_scores[condition] += weight * 1.2  # 20% boost for multi-symptom match
+                    else:
+                        condition_scores[condition] = weight
+        
+        # Sort conditions by score and return top 3-5 most relevant
+        sorted_conditions = sorted(condition_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        # Return top 3-5 conditions based on score threshold
+        top_conditions = []
+        for condition, score in sorted_conditions:
+            if score >= 0.6 or len(top_conditions) < 3:  # Always include top 3, or higher scored ones
+                top_conditions.append(condition)
+                if len(top_conditions) >= 5:  # Maximum 5 conditions
+                    break
+        
+        logger.info(f"Condition scoring results: {dict(sorted_conditions[:5])}")
+        return top_conditions
 
 @Singleton
 class HuggingFaceService:

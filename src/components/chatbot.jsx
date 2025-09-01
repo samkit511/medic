@@ -17,7 +17,7 @@ const Chatbot = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  const BACKEND_URL = 'https://localhost:8443';
+  const BACKEND_URL = 'http://localhost:8000';
 
   // Create axios instance with interceptors for JWT
   const api = axios.create({
